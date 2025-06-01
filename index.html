@@ -183,13 +183,13 @@
       document.getElementById("mutationPoints").textContent = mutationPoints;
 
       const canBuyPlant = canAfford(plantCost, getBuyCount('plant'));
-      const canBuyAnimal = canAfford(animalCost, getBuyCount('animal')) && level >= 10;
+      const canBuyAnimal = canAfford(animalCost, getBuyCount('animal')) && level >= 3;
 
       document.getElementById("plantCard").classList.toggle("disabled", !canBuyPlant);
       document.getElementById("animalCard").classList.toggle("disabled", !canBuyAnimal);
 
       const regenBtn = document.getElementById("regenerateBtn");
-      const regenThreshold = 2 * level;
+      const regenThreshold = 10 * level;
       document.getElementById("regenCondition").textContent = `Requires ${regenThreshold} total cells`;
 
       regenBtn.classList.toggle("enabled", plantCells + animalCells >= regenThreshold);
