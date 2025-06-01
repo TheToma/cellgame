@@ -162,7 +162,7 @@
     let animalCells = 0;
     let plantCost = 10;
     let animalCost = 500;
-    let clickPower = 20.5;
+    let clickPower = 0.5;
     let buyAmount = 1;
     let level = 1;
     let mutationPoints = 0;
@@ -183,7 +183,7 @@
       document.getElementById("mutationPoints").textContent = mutationPoints;
 
       const canBuyPlant = canAfford(plantCost, getBuyCount('plant'));
-      const canBuyAnimal = canAfford(animalCost, getBuyCount('animal')) && level >= 3;
+      const canBuyAnimal = canAfford(animalCost, getBuyCount('animal')) && level >= 10;
 
       document.getElementById("plantCard").classList.toggle("disabled", !canBuyPlant);
       document.getElementById("animalCard").classList.toggle("disabled", !canBuyAnimal);
@@ -206,13 +206,19 @@
     }
 
     function manualClick() {
-      if(plantCost == 10) return;
       energy += clickPower;
       updateDisplay();
     }
 
     function setBuyAmount(amount) {
       buyAmount = amount;
+      document.querySelectorAll(".buy-options button").forEach(btn => btn.classList.remove("active"));
+      const value = amount.toString();
+      document.querySelectorAll(".buy-options button").forEach(btn => {
+        if (btn.textContent.replace('x', '') === value || (value === 'max' && btn.textContent === 'Max')) {
+          btn.classList.add("active");
+        }
+      });
       updateDisplay();
     }
 
@@ -249,7 +255,7 @@
     }
 
     function buyCell(type) {
-      if (type === 'animal' && level < 2) return;
+      if (type === 'animal' && level < 10) return;
       let cost = type === 'plant' ? plantCost : animalCost;
       let count = 0;
 
@@ -297,7 +303,7 @@
     function regenerate() {
       level++;
       const cellTotal = plantCells + animalCells;
-      mutationPoints++;
+      mutationPoints += Math.floor(cellTotal / 10);
       plantCells = 0;
       animalCells = 0;
       energy = mutations.keepEnergy ? Math.floor(energy * 0.25) : 10;
@@ -324,6 +330,7 @@
       updateDisplay();
     }, 100);
 
+    setBuyAmount(1);
     updateDisplay();
   </script>
 </body>
