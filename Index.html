@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CellCore: Evolution Engine</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #e0f7fa;
+      color: #004d40;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    header {
+      background: #00796b;
+      color: white;
+      padding: 1rem;
+      width: 100%;
+    }
+    .counter {
+      margin: 1rem;
+      font-size: 1.5rem;
+    }
+    .store, .cells, .clicker, .buy-options {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 1rem;
+    }
+    .card {
+      background: white;
+      border: 2px solid #004d40;
+      border-radius: 10px;
+      padding: 1rem;
+      margin: 0.5rem;
+      min-width: 120px;
+      cursor: pointer;
+    }
+    .card.disabled {
+      background: #ffebee;
+      border-color: #b71c1c;
+      cursor: not-allowed;
+    }
+    .prestige {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: #004d40;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+      transition: background 0.3s;
+    }
+    .prestige.enabled {
+      background: #388e3c;
+      cursor: pointer;
+    }
+    .click-button {
+      background: #26a69a;
+      color: white;
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+    .buy-options button {
+      margin: 0 0.5rem;
+      padding: 0.5rem 1rem;
+      background: #004d40;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .buy-options button.active {
+      background: #26a69a;
+    }
+    #mutationMenu {
+      margin-top: 2rem;
+      padding: 1rem;
+      border: 2px dashed #004d40;
+      width: 80%;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+    }
+    .mutation-btn {
+      margin: 0.5rem;
+      padding: 0.5rem;
+      background: #00796b;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      width: 80%;
+      max-width: 400px;
+    }
+    .mutation-btn:disabled {
+      background: #ccc;
+      color: #666;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>CellCore: Evolution Engine</h1>
+  </header>
+
+  <div class="counter">
+    Energy: <span id="energy">0</span> | EPS: <span id="eps">0</span><br>
+    Level: <span id="level">1</span> | Mutation Points: <span id="mutationPoints">0</span>
+  </div>
+
+  <div class="clicker">
+    <button class="click-button" onclick="manualClick()">⚡ Generate Energy</button>
+  </div>
+
+  <div class="buy-options">
+    <button onclick="setBuyAmount(1)">x1</button>
+    <button onclick="setBuyAmount(5)">x5</button>
+    <button onclick="setBuyAmount(25)">x25</button>
+    <button onclick="setBuyAmount('max')">Max</button>
+  </div>
+
+  <div class="store">
+    <div class="card" id="plantCard" onclick="buyCell('plant')">
+      🌿 Plant Cell<br/>
+      Cost: <span id="plantCost">10</span><br/>
+      Owned: <span id="plantCount">0</span>
+    </div>
+    <div class="card" id="animalCard" onclick="buyCell('animal')">
+      🧬 Animal Cell<br/>
+      Cost: <span id="animalCost">500</span><br/>
+      Owned: <span id="animalCount">0</span>
+    </div>
+  </div>
+
+  <div class="cells">
+    <button class="prestige" id="regenerateBtn" onclick="confirmRegenerate()">
+      🔁 Regenerate & Level Up<br/>
+      <span id="regenCondition">Requires 10 total cells</span>
+    </button>
+    <button class="prestige enabled" onclick="toggleMutationMenu()">🧬 Mutate</button>
+  </div>
+
+  <div id="mutationMenu">
+    <h3>Mutations</h3>
+    <button class="mutation-btn" id="mut1" onclick="buyMutation('plantBoost')">🌱 Efficient Photosynthesis (+20% Plant EPS)</button>
+    <button class="mutation-btn" id="mut2" onclick="buyMutation('animalBoost')">🧠 Advanced Metabolism (+20% Animal EPS)</button>
+    <button class="mutation-btn" id="mut3" onclick="buyMutation('keepEnergy')">🔋 Energy Retention (Keep 25% Energy on Regen)</button>
+  </div>
+
+  <script>
+    let energy = 10;
+    let plantCells = 0;
+    let animalCells = 0;
+    let plantCost = 10;
+    let animalCost = 500;
+    let clickPower = 0.5;
+    let buyAmount = 1;
+    let level = 1;
+    let mutationPoints = 0;
+    let mutations = {
+      plantBoost: false,
+      animalBoost: false,
+      keepEnergy: false
+    };
+
+    function updateDisplay() {
+      document.getElementById("energy").textContent = Math.floor(energy);
+      document.getElementById("eps").textContent = getEPS();
+      document.getElementById("plantCount").textContent = plantCells;
+      document.getElementById("animalCount").textContent = animalCells;
+      document.getElementById("plantCost").textContent = getTotalCost('plant');
+      document.getElementById("animalCost").textContent = getTotalCost('animal');
+      document.getElementById("level").textContent = level;
+      document.getElementById("mutationPoints").textContent = mutationPoints;
+
+      const canBuyPlant = canAfford(plantCost, getBuyCount('plant'));
+      const canBuyAnimal = canAfford(animalCost, getBuyCount('animal')) && level >= 10;
+
+      document.getElementById("plantCard").classList.toggle("disabled", !canBuyPlant);
+      document.getElementById("animalCard").classList.toggle("disabled", !canBuyAnimal);
+
+      const regenBtn = document.getElementById("regenerateBtn");
+      const regenThreshold = 10 * level;
+      document.getElementById("regenCondition").textContent = `Requires ${regenThreshold} total cells`;
+
+      regenBtn.classList.toggle("enabled", plantCells + animalCells >= regenThreshold);
+
+      document.getElementById("mut1").disabled = mutations.plantBoost || mutationPoints < 1;
+      document.getElementById("mut2").disabled = mutations.animalBoost || mutationPoints < 1;
+      document.getElementById("mut3").disabled = mutations.keepEnergy || mutationPoints < 1;
+    }
+
+    function getEPS() {
+      let plantEPS = mutations.plantBoost ? 1.2 : 1;
+      let animalEPS = mutations.animalBoost ? 2.4 : 2;
+      return Math.round((plantCells * plantEPS + animalCells * animalEPS) * 10) / 10;
+    }
+
+    function manualClick() {
+      energy += clickPower;
+      updateDisplay();
+    }
+
+    function setBuyAmount(amount) {
+      buyAmount = amount;
+      updateDisplay();
+    }
+
+    function canAfford(cost, amount) {
+      let total = 0;
+      for (let i = 0; i < amount; i++) {
+        total += Math.floor(cost * Math.pow(1.15, i));
+      }
+      return energy >= total;
+    }
+
+    function getTotalCost(type) {
+      let cost = type === 'plant' ? plantCost : animalCost;
+      let amount = getBuyCount(type);
+      let total = 0;
+      for (let i = 0; i < amount; i++) {
+        total += Math.floor(cost * Math.pow(1.15, i));
+      }
+      return total;
+    }
+
+    function getBuyCount(type) {
+      if (buyAmount === 'max') {
+        let cost = type === 'plant' ? plantCost : animalCost;
+        let tempCost = cost, count = 0, tempEnergy = energy;
+        while (tempEnergy >= tempCost) {
+          tempEnergy -= tempCost;
+          count++;
+          tempCost = Math.floor(cost * Math.pow(1.15, count));
+        }
+        return count;
+      }
+      return buyAmount;
+    }
+
+    function buyCell(type) {
+      if (type === 'animal' && level < 10) return;
+      let cost = type === 'plant' ? plantCost : animalCost;
+      let count = 0;
+
+      if (buyAmount === 'max') {
+        let tempCost = cost;
+        while (energy >= tempCost) {
+          energy -= tempCost;
+          count++;
+          tempCost = Math.floor(cost * Math.pow(1.15, count));
+        }
+      } else {
+        for (let i = 0; i < buyAmount; i++) {
+          if (energy >= cost) {
+            energy -= cost;
+            cost = Math.floor(cost * 1.15);
+            count++;
+          } else {
+            break;
+          }
+        }
+      }
+
+      if (type === 'plant') {
+        plantCells += count;
+        plantCost = Math.floor(plantCost * Math.pow(1.15, count));
+      } else if (type === 'animal') {
+        animalCells += count;
+        animalCost = Math.floor(animalCost * Math.pow(1.15, count));
+      }
+
+      updateDisplay();
+    }
+
+    function confirmRegenerate() {
+      const regenThreshold = 10 * level;
+      if (plantCells + animalCells >= regenThreshold) {
+        if (confirm("Are you sure you want to regenerate and level up? This will reset your cells.")) {
+          regenerate();
+        }
+      } else {
+        alert(`You need at least ${regenThreshold} total cells to regenerate.`);
+      }
+    }
+
+    function regenerate() {
+      level++;
+      const cellTotal = plantCells + animalCells;
+      mutationPoints += Math.floor(cellTotal / 10);
+      plantCells = 0;
+      animalCells = 0;
+      energy = mutations.keepEnergy ? Math.floor(energy * 0.25) : 10;
+      plantCost = 10;
+      animalCost = 500;
+      alert(`Regenerated! Welcome to level ${level}.`);
+      updateDisplay();
+    }
+
+    function toggleMutationMenu() {
+      const menu = document.getElementById("mutationMenu");
+      menu.style.display = menu.style.display === "flex" ? "none" : "flex";
+    }
+
+    function buyMutation(type) {
+      if (mutationPoints < 1 || mutations[type]) return;
+      mutations[type] = true;
+      mutationPoints--;
+      updateDisplay();
+    }
+
+    setInterval(() => {
+      energy += getEPS() / 10;
+      updateDisplay();
+    }, 100);
+
+    updateDisplay();
+  </script>
+</body>
+</html>
