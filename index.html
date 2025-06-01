@@ -162,7 +162,7 @@
     let animalCells = 0;
     let plantCost = 10;
     let animalCost = 500;
-    let clickPower = 0.5;
+    let clickPower = 20.5;
     let buyAmount = 1;
     let level = 1;
     let mutationPoints = 0;
@@ -296,7 +296,7 @@
     function regenerate() {
       level++;
       const cellTotal = plantCells + animalCells;
-      mutationPoints += Math.floor(cellTotal / 10);
+      mutationPoints++;
       plantCells = 0;
       animalCells = 0;
       energy = mutations.keepEnergy ? Math.floor(energy * 0.25) : 10;
