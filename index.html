@@ -189,7 +189,7 @@
       document.getElementById("animalCard").classList.toggle("disabled", !canBuyAnimal);
 
       const regenBtn = document.getElementById("regenerateBtn");
-      const regenThreshold = 10 * level;
+      const regenThreshold = 2 * level;
       document.getElementById("regenCondition").textContent = `Requires ${regenThreshold} total cells`;
 
       regenBtn.classList.toggle("enabled", plantCells + animalCells >= regenThreshold);
