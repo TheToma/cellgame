@@ -149,14 +149,13 @@
     <button class="prestige enabled" onclick="toggleMutationMenu()">🧬 Mutate</button>
   </div>
 
-  <div id="mutationMenu">
-    <h3>Mutations</h3>
-    <button class="mutation-btn" id="mut1" onclick="buyMutation('plantBoost')">🌱 Efficient Photosynthesis (+20% Plant EPS)</button>
-    <button class="mutation-btn" id="mut2" onclick="buyMutation('animalBoost')">🧠 Advanced Metabolism (+20% Animal EPS)</button>
-    <button class="mutation-btn" id="mut3" onclick="buyMutation('keepEnergy')">🔋 Energy Retention (Keep 25% Energy on Regen)</button>
-  </div>
 
-  <!-- SAME HEAD & STYLE AS BEFORE -->
+<div id="mutationMenu">
+  <h3>Mutations</h3>
+  <button class="mutation-btn" id="mut1" onclick="buyMutation('clickPower')"></button>
+  <button class="mutation-btn" id="mut2" onclick="buyMutation('costReduction')"></button>
+  <button class="mutation-btn" id="mut3" onclick="buyMutation('passiveEnergy')"></button>
+</div>
 
 <script>
   let energy = 10;
@@ -170,12 +169,12 @@
   let mutationPoints = 0;
   let previousCellTotal = 0;
   let mutations = {
-    plantBoost: false,
-    animalBoost: false,
-    keepEnergy: false
+    clickPower: 0, // +20% click power per point
+    costReduction: 0, // -0.01 cost scaling per point
+    passiveEnergy: 0, // +20% passive energy per point
   };
 
-  function updateDisplay() {
+   function updateDisplay() {
     document.getElementById("energy").textContent = Math.floor(energy);
     document.getElementById("eps").textContent = getEPS();
     document.getElementById("plantCount").textContent = plantCells;
@@ -185,31 +184,33 @@
     document.getElementById("level").textContent = level;
     document.getElementById("mutationPoints").textContent = mutationPoints;
 
-    const canBuyPlant = canAfford(plantCost, getBuyCount('plant'));
-    const canBuyAnimal = canAfford(animalCost, getBuyCount('animal')) && level >= 5;
+    document.getElementById("mut1").textContent = `💥 Click Power +20% (${mutations.clickPower})`;
+    document.getElementById("mut2").textContent = `🧮 Cost Scaling -0.01 (${mutations.costReduction})`;
+    document.getElementById("mut3").textContent = `🔋 Passive EPS +20% (${mutations.passiveEnergy})`;
 
-    document.getElementById("plantCard").classList.toggle("disabled", !canBuyPlant);
-    document.getElementById("animalCard").classList.toggle("disabled", !canBuyAnimal);
-
-    const regenBtn = document.getElementById("regenerateBtn");
-    const regenThreshold = 10 * level;
-    document.getElementById("regenCondition").textContent = `Requires ${regenThreshold} total cells`;
-
-    regenBtn.classList.toggle("enabled", plantCells + animalCells >= regenThreshold);
-
-    document.getElementById("mut1").disabled = mutations.plantBoost || mutationPoints < 1;
-    document.getElementById("mut2").disabled = mutations.animalBoost || mutationPoints < 1;
-    document.getElementById("mut3").disabled = mutations.keepEnergy || mutationPoints < 1;
+    document.getElementById("mut1").disabled = mutationPoints < 1;
+    document.getElementById("mut2").disabled = mutationPoints < 1;
+    document.getElementById("mut3").disabled = mutationPoints < 1;
   }
 
-  function getEPS() {
-    let plantEPS = mutations.plantBoost ? 1.2 : 1;
-    let animalEPS = mutations.animalBoost ? 2.4 : 2;
-    return Math.round((plantCells * plantEPS + animalCells * animalEPS) * 10) / 10;
+  function getClickPower() {
+    return 0.5 * (1 + 0.2 * mutations.clickPower);
+  }
+  
+   function getEPS() {
+    let basePlant = 1;
+    let baseAnimal = 2;
+    let plantMultiplier = 1 + 0.2 * mutations.passiveEnergy;
+    let animalMultiplier = 1 + 0.2 * mutations.passiveEnergy;
+    return Math.round((plantCells * basePlant * plantMultiplier + animalCells * baseAnimal * animalMultiplier) * 10) / 10;
+  }
+
+  function getCostScaling() {
+    return 1.15 - 0.01 * mutations.costReduction;
   }
 
   function manualClick() {
-    energy += clickPower;
+    energy += getClickPower();
     updateDisplay();
   }
 
@@ -238,7 +239,7 @@
     let amount = getBuyCount(type);
     let total = 0;
     for (let i = 0; i < amount; i++) {
-      total += Math.floor(cost * Math.pow(1.15, i));
+      total += Math.floor(cost * Math.pow(getCostScaling(), i));
     }
     return total;
   }
@@ -326,9 +327,9 @@
     menu.style.display = menu.style.display === "flex" ? "none" : "flex";
   }
 
-  function buyMutation(type) {
-    if (mutationPoints < 1 || mutations[type]) return;
-    mutations[type] = true;
+ function buyMutation(type) {
+    if (mutationPoints < 1) return;
+    mutations[type] = (mutations[type] || 0) + 1;
     mutationPoints--;
     updateDisplay();
   }
