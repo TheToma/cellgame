@@ -156,182 +156,190 @@
     <button class="mutation-btn" id="mut3" onclick="buyMutation('keepEnergy')">🔋 Energy Retention (Keep 25% Energy on Regen)</button>
   </div>
 
-  <script>
-    let energy = 10;
-    let plantCells = 0;
-    let animalCells = 0;
-    let plantCost = 10;
-    let animalCost = 500;
-    let clickPower = 0.5;
-    let buyAmount = 1;
-    let level = 1;
-    let mutationPoints = 0;
-    let mutations = {
-      plantBoost: false,
-      animalBoost: false,
-      keepEnergy: false
-    };
+  <!-- SAME HEAD & STYLE AS BEFORE -->
 
-    function updateDisplay() {
-      document.getElementById("energy").textContent = Math.floor(energy);
-      document.getElementById("eps").textContent = getEPS();
-      document.getElementById("plantCount").textContent = plantCells;
-      document.getElementById("animalCount").textContent = animalCells;
-      document.getElementById("plantCost").textContent = getTotalCost('plant');
-      document.getElementById("animalCost").textContent = getTotalCost('animal');
-      document.getElementById("level").textContent = level;
-      document.getElementById("mutationPoints").textContent = mutationPoints;
+<script>
+  let energy = 10;
+  let plantCells = 0;
+  let animalCells = 0;
+  let plantCost = 10;
+  let animalCost = 500;
+  let clickPower = 0.5;
+  let buyAmount = 1;
+  let level = 1;
+  let mutationPoints = 0;
+  let previousCellTotal = 0;
+  let mutations = {
+    plantBoost: false,
+    animalBoost: false,
+    keepEnergy: false
+  };
 
-      const canBuyPlant = canAfford(plantCost, getBuyCount('plant'));
-      const canBuyAnimal = canAfford(animalCost, getBuyCount('animal')) && level >= 10;
+  function updateDisplay() {
+    document.getElementById("energy").textContent = Math.floor(energy);
+    document.getElementById("eps").textContent = getEPS();
+    document.getElementById("plantCount").textContent = plantCells;
+    document.getElementById("animalCount").textContent = animalCells;
+    document.getElementById("plantCost").textContent = getTotalCost('plant');
+    document.getElementById("animalCost").textContent = getTotalCost('animal');
+    document.getElementById("level").textContent = level;
+    document.getElementById("mutationPoints").textContent = mutationPoints;
 
-      document.getElementById("plantCard").classList.toggle("disabled", !canBuyPlant);
-      document.getElementById("animalCard").classList.toggle("disabled", !canBuyAnimal);
+    const canBuyPlant = canAfford(plantCost, getBuyCount('plant'));
+    const canBuyAnimal = canAfford(animalCost, getBuyCount('animal')) && level >= 5;
 
-      const regenBtn = document.getElementById("regenerateBtn");
-      const regenThreshold = 10 * level;
-      document.getElementById("regenCondition").textContent = `Requires ${regenThreshold} total cells`;
+    document.getElementById("plantCard").classList.toggle("disabled", !canBuyPlant);
+    document.getElementById("animalCard").classList.toggle("disabled", !canBuyAnimal);
 
-      regenBtn.classList.toggle("enabled", plantCells + animalCells >= regenThreshold);
+    const regenBtn = document.getElementById("regenerateBtn");
+    const regenThreshold = 10 * level;
+    document.getElementById("regenCondition").textContent = `Requires ${regenThreshold} total cells`;
 
-      document.getElementById("mut1").disabled = mutations.plantBoost || mutationPoints < 1;
-      document.getElementById("mut2").disabled = mutations.animalBoost || mutationPoints < 1;
-      document.getElementById("mut3").disabled = mutations.keepEnergy || mutationPoints < 1;
-    }
+    regenBtn.classList.toggle("enabled", plantCells + animalCells >= regenThreshold);
 
-    function getEPS() {
-      let plantEPS = mutations.plantBoost ? 1.2 : 1;
-      let animalEPS = mutations.animalBoost ? 2.4 : 2;
-      return Math.round((plantCells * plantEPS + animalCells * animalEPS) * 10) / 10;
-    }
+    document.getElementById("mut1").disabled = mutations.plantBoost || mutationPoints < 1;
+    document.getElementById("mut2").disabled = mutations.animalBoost || mutationPoints < 1;
+    document.getElementById("mut3").disabled = mutations.keepEnergy || mutationPoints < 1;
+  }
 
-    function manualClick() {
-      energy += clickPower;
-      updateDisplay();
-    }
+  function getEPS() {
+    let plantEPS = mutations.plantBoost ? 1.2 : 1;
+    let animalEPS = mutations.animalBoost ? 2.4 : 2;
+    return Math.round((plantCells * plantEPS + animalCells * animalEPS) * 10) / 10;
+  }
 
-    function setBuyAmount(amount) {
-      buyAmount = amount;
-      document.querySelectorAll(".buy-options button").forEach(btn => btn.classList.remove("active"));
-      const value = amount.toString();
-      document.querySelectorAll(".buy-options button").forEach(btn => {
-        if (btn.textContent.replace('x', '') === value || (value === 'max' && btn.textContent === 'Max')) {
-          btn.classList.add("active");
-        }
-      });
-      updateDisplay();
-    }
-
-    function canAfford(cost, amount) {
-      let total = 0;
-      for (let i = 0; i < amount; i++) {
-        total += Math.floor(cost * Math.pow(1.15, i));
-      }
-      return energy >= total;
-    }
-
-    function getTotalCost(type) {
-      let cost = type === 'plant' ? plantCost : animalCost;
-      let amount = getBuyCount(type);
-      let total = 0;
-      for (let i = 0; i < amount; i++) {
-        total += Math.floor(cost * Math.pow(1.15, i));
-      }
-      return total;
-    }
-
-    function getBuyCount(type) {
-      if (buyAmount === 'max') {
-        let cost = type === 'plant' ? plantCost : animalCost;
-        let tempCost = cost, count = 0, tempEnergy = energy;
-        while (tempEnergy >= tempCost) {
-          tempEnergy -= tempCost;
-          count++;
-          tempCost = Math.floor(cost * Math.pow(1.15, count));
-        }
-        return count;
-      }
-      return buyAmount;
-    }
-
-    function buyCell(type) {
-      if (type === 'animal' && level < 10) return;
-      let cost = type === 'plant' ? plantCost : animalCost;
-      let count = 0;
-
-      if (buyAmount === 'max') {
-        let tempCost = cost;
-        while (energy >= tempCost) {
-          energy -= tempCost;
-          count++;
-          tempCost = Math.floor(cost * Math.pow(1.15, count));
-        }
-      } else {
-        for (let i = 0; i < buyAmount; i++) {
-          if (energy >= cost) {
-            energy -= cost;
-            cost = Math.floor(cost * 1.15);
-            count++;
-          } else {
-            break;
-          }
-        }
-      }
-
-      if (type === 'plant') {
-        plantCells += count;
-        plantCost = Math.floor(plantCost * Math.pow(1.15, count));
-      } else if (type === 'animal') {
-        animalCells += count;
-        animalCost = Math.floor(animalCost * Math.pow(1.15, count));
-      }
-
-      updateDisplay();
-    }
-
-    function confirmRegenerate() {
-      const regenThreshold = 10 * level;
-      if (plantCells + animalCells >= regenThreshold) {
-        if (confirm("Are you sure you want to regenerate and level up? This will reset your cells.")) {
-          regenerate();
-        }
-      } else {
-        alert(`You need at least ${regenThreshold} total cells to regenerate.`);
-      }
-    }
-
-    function regenerate() {
-      level++;
-      const cellTotal = plantCells + animalCells;
-      mutationPoints += Math.floor(cellTotal / 10);
-      plantCells = 0;
-      animalCells = 0;
-      energy = mutations.keepEnergy ? Math.floor(energy * 0.25) : 10;
-      plantCost = 10;
-      animalCost = 500;
-      alert(`Regenerated! Welcome to level ${level}.`);
-      updateDisplay();
-    }
-
-    function toggleMutationMenu() {
-      const menu = document.getElementById("mutationMenu");
-      menu.style.display = menu.style.display === "flex" ? "none" : "flex";
-    }
-
-    function buyMutation(type) {
-      if (mutationPoints < 1 || mutations[type]) return;
-      mutations[type] = true;
-      mutationPoints--;
-      updateDisplay();
-    }
-
-    setInterval(() => {
-      energy += getEPS() / 10;
-      updateDisplay();
-    }, 100);
-
-    setBuyAmount(1);
+  function manualClick() {
+    energy += clickPower;
     updateDisplay();
-  </script>
+  }
+
+  function setBuyAmount(amount) {
+    buyAmount = amount;
+    document.querySelectorAll(".buy-options button").forEach(btn => btn.classList.remove("active"));
+    const value = amount.toString();
+    document.querySelectorAll(".buy-options button").forEach(btn => {
+      if (btn.textContent.replace('x', '') === value || (value === 'max' && btn.textContent === 'Max')) {
+        btn.classList.add("active");
+      }
+    });
+    updateDisplay();
+  }
+
+  function canAfford(cost, amount) {
+    let total = 0;
+    for (let i = 0; i < amount; i++) {
+      total += Math.floor(cost * Math.pow(1.15, i));
+    }
+    return energy >= total;
+  }
+
+  function getTotalCost(type) {
+    let cost = type === 'plant' ? plantCost : animalCost;
+    let amount = getBuyCount(type);
+    let total = 0;
+    for (let i = 0; i < amount; i++) {
+      total += Math.floor(cost * Math.pow(1.15, i));
+    }
+    return total;
+  }
+
+  function getBuyCount(type) {
+    if (buyAmount === 'max') {
+      let cost = type === 'plant' ? plantCost : animalCost;
+      let tempCost = cost, count = 0, tempEnergy = energy;
+      while (tempEnergy >= tempCost) {
+        tempEnergy -= tempCost;
+        count++;
+        tempCost = Math.floor(cost * Math.pow(1.15, count));
+      }
+      return count;
+    }
+    return buyAmount;
+  }
+
+  function buyCell(type) {
+    if (type === 'animal' && level < 5) return;
+    let cost = type === 'plant' ? plantCost : animalCost;
+    let count = 0;
+
+    if (buyAmount === 'max') {
+      let tempCost = cost;
+      while (energy >= tempCost) {
+        energy -= tempCost;
+        count++;
+        tempCost = Math.floor(cost * Math.pow(1.15, count));
+      }
+    } else {
+      for (let i = 0; i < buyAmount; i++) {
+        if (energy >= cost) {
+          energy -= cost;
+          cost = Math.floor(cost * 1.15);
+          count++;
+        } else {
+          break;
+        }
+      }
+    }
+
+    if (type === 'plant') {
+      plantCells += count;
+      plantCost = Math.floor(plantCost * Math.pow(1.15, count));
+    } else if (type === 'animal') {
+      animalCells += count;
+      animalCost = Math.floor(animalCost * Math.pow(1.15, count));
+    }
+
+    updateDisplay();
+  }
+
+  function confirmRegenerate() {
+    const regenThreshold = 10 * level;
+    if (plantCells + animalCells >= regenThreshold) {
+      if (confirm("Are you sure you want to regenerate and level up? This will reset your cells.")) {
+        regenerate();
+      }
+    } else {
+      alert(`You need at least ${regenThreshold} total cells to regenerate.`);
+    }
+  }
+
+  function regenerate() {
+    level++;
+    const cellTotal = plantCells + animalCells;
+    const newPoints = Math.floor((cellTotal - previousCellTotal) / 10);
+    if (newPoints > 0) mutationPoints += newPoints;
+    previousCellTotal = cellTotal;
+
+    plantCells = 0;
+    animalCells = 0;
+    plantCost = 10;
+    animalCost = 500;
+
+    energy = mutations.keepEnergy ? Math.max(10, Math.floor(energy * 0.25)) : 10;
+
+    alert(`Regenerated! Welcome to level ${level}.`);
+    updateDisplay();
+  }
+
+  function toggleMutationMenu() {
+    const menu = document.getElementById("mutationMenu");
+    menu.style.display = menu.style.display === "flex" ? "none" : "flex";
+  }
+
+  function buyMutation(type) {
+    if (mutationPoints < 1 || mutations[type]) return;
+    mutations[type] = true;
+    mutationPoints--;
+    updateDisplay();
+  }
+
+  setInterval(() => {
+    energy += getEPS() / 10;
+    updateDisplay();
+  }, 100);
+
+  setBuyAmount(1);
+  updateDisplay();
+</script>
 </body>
 </html>
